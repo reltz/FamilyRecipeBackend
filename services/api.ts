@@ -15,7 +15,9 @@ export class APIService extends Construct {
     constructor(scope: Construct, id: string, props: APIServiceProps) {
         super(scope, id);
 
-        this.api = new apiGateway.RestApi(this, 'FamilyRecipeAPI');
+        this.api = new apiGateway.RestApi(this, 'FamilyRecipeAPI', {
+            binaryMediaTypes: ['multipart/form-data'], // add this line
+        });
 
          // Authorizer
         const jwtAuthorizer = new apiGateway.TokenAuthorizer(this, 'JwtAuthorizer', {
