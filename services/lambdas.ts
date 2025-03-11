@@ -12,7 +12,8 @@ export class LambdaService extends Construct {
 
     private lambdaBuildDir = "./functions/dist";
 
-    constructor(scope: Construct, id: string, props: { table: dynamodb.Table; bucket: s3.Bucket }) {
+    // constructor(scope: Construct, id: string, props: { table: dynamodb.Table; bucket: s3.Bucket }) {
+    constructor(scope: Construct, id: string, props: { table: dynamodb.Table; }) {
         super(scope, id);
 
         this.loginLambda = new lambda.Function(this, 'LoginFunction', {
@@ -35,11 +36,11 @@ export class LambdaService extends Construct {
             memorySize: 128,
             environment: {
                 TABLE_NAME: props.table.tableName,
-                BUCKET_NAME: props.bucket.bucketName,
+                // BUCKET_NAME: props.bucket.bucketName,
             },
         });
         props.table.grantReadWriteData(this.crudLambda);
-        props.bucket.grantReadWrite(this.crudLambda);
+        // props.bucket.grantReadWrite(this.crudLambda);
 
         this.authorizer = new lambda.Function(this, 'Authorizer', {
             runtime: lambda.Runtime.NODEJS_20_X,

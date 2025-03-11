@@ -27,6 +27,11 @@ export async function handler(event: APIGatewayEvent) {
   const method = event.httpMethod;
   const body = event.body ? JSON.parse(event.body) : null;
 
+  //TEST
+  if (path.includes('/') && method == 'GET') {
+    return { statusCode: 200, body: JSON.stringify({message: "success"}) };
+  }
+
   if (path.includes('/recipes/list-recipes') && method === 'GET') {
     const recipes = await database.listRecipes(familyId);
     return { statusCode: 200, body: JSON.stringify(recipes) };

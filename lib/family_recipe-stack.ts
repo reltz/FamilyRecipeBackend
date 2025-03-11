@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { DatabaseService } from '../services/database';
-import { StorageService } from '../services/s3Bucket';
+// import { StorageService } from '../services/s3Bucket';
 import { Lambda } from 'aws-cdk-lib/aws-ses-actions';
 import { LambdaService } from '../services/lambdas';
 import { APIService } from '../services/api';
@@ -13,12 +13,12 @@ export class FamilyRecipeStack extends cdk.Stack {
 
     const database = new DatabaseService(this, "database-service");
 
-    const storage = new StorageService(this, 'storage-service');
+    // const storage = new StorageService(this, 'storage-service');
 
 
     const lambdas = new LambdaService(this, 'lambda-service', {
       table: database.table,
-      bucket: storage.bucket,
+      // bucket: storage.bucket,
     })
 
     const apiService = new APIService(this, 'api-service', {loginLambda: lambdas.loginLambda, crudLambda: lambdas.crudLambda, authorizer: lambdas.authorizer});
