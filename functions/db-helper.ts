@@ -52,8 +52,7 @@ export interface DBSecret {
 
 
 export class Database {
-    private tableName = "FamilyRecipeTable";
-    constructor(public readonly dynamoDB: DynamoDBDocumentClient){}
+    constructor(public readonly dynamoDB: DynamoDBDocumentClient, public readonly tableName: string){}
 
     public static makePK(entity: EntityType, value: string): string {
         switch (entity) {
@@ -102,6 +101,11 @@ export class Database {
             console.error("Error querying recipes:", error);
             throw error;
         }
+    }
+
+
+    public async createRecipe(): Promise<void> {
+        // Implement the createRecipe method            
     }
 
     public async createUser(username: string, password: string, familyId: string, familyName: string) {

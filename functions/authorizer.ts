@@ -17,8 +17,12 @@ const dynamoDb = DynamoDBDocumentClient.from(client);
 
 
 export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<APIGatewayAuthorizerResult> {
+  const tableName = process.env.TABLE_NAME;
+  if (!tableName) {
+    throw new Error('Table name not set');
+  }
 
-  const db = new Database(dynamoDb);
+  const db = new Database(dynamoDb, tableName);
   const token = event.authorizationToken.split(' ')[1]; // Assuming Bearer <token>
 
   // Get the secret from DynamoDB

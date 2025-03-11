@@ -9,8 +9,11 @@ const client = new DynamoDBClient({ region: 'ca-central-1' });
 const dynamoDb = DynamoDBDocumentClient.from(client);
 
 export async function handler(event: APIGatewayEvent) {
-
-  const database = new Database(dynamoDb);
+  const tableName = process.env.TABLE_NAME;
+  if (!tableName) {
+    throw new Error('Table name not set');
+  }
+  const database = new Database(dynamoDb, tableName);
   
   console.log('Received event:', JSON.stringify(event, null, 2));
 

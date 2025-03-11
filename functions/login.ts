@@ -10,6 +10,12 @@ const dynamoDb = DynamoDBDocumentClient.from(client);
 
 
 export async function handler(event: APIGatewayEvent) {
+  const tableName = process.env.TABLE_NAME;
+  if (!tableName) {
+    throw new Error('Table name not set');
+  }
+
+
   const body = event.body ? JSON.parse(event.body) : null;
   if (!body?.username || !body?.password) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Missing credentials' }) };
@@ -18,7 +24,7 @@ export async function handler(event: APIGatewayEvent) {
   const username = body.username;
   const password = body.password;
 
-  const db = new Database(dynamoDb);
+  const db = new Database(dynamoDb, tableName);
 
   const user = await db.getUser(username);
 
