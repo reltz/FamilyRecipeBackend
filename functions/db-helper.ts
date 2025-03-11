@@ -202,7 +202,7 @@ export class Database {
         );
     }
 
-    public async getUser(username: string): Promise<any> {
+    public async getUser(username: string): Promise<DBUser> {
         const params = {
             TableName: this.tableName, 
             Key: marshall({
@@ -215,11 +215,11 @@ export class Database {
             const result = await this.dynamoDB.send(new GetItemCommand(params));
             
             if (result.Item) {
-                const user = unmarshall(result.Item);
+                const user: DBUser = unmarshall(result.Item) as DBUser;
                 return user; // Return the user object
             } else {
                 console.log("User not found.");
-                return null; // Return null if no user was found
+                throw new Error('User not found');
             }
         } catch (error) {
             console.error("Error retrieving user:", error);
@@ -275,6 +275,6 @@ export class Database {
     }
 }
 
-function hashPassword(password: string, salt: string): string {
+export function hashPassword(password: string, salt: string): string {
     return createHmac("sha256", salt).update(password).digest("hex");
 }

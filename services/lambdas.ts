@@ -8,6 +8,7 @@ export class LambdaService extends Construct {
     public readonly loginLambda: lambda.Function;
     public readonly crudLambda: lambda.Function;
     public readonly authorizer: lambda.Function;
+    public readonly controler: lambda.Function;
 
     private lambdaBuildDir = "./functions/dist";
 
@@ -24,6 +25,9 @@ export class LambdaService extends Construct {
             },
         });
 
+         // Grant permissions
+         props.table.grantReadData(this.loginLambda);
+
         this.crudLambda = new lambda.Function(this, 'CrudFunction', {
             runtime: lambda.Runtime.NODEJS_20_X,
             code: lambda.Code.fromAsset(this.lambdaBuildDir),
@@ -34,6 +38,8 @@ export class LambdaService extends Construct {
                 BUCKET_NAME: props.bucket.bucketName,
             },
         });
+        props.table.grantReadWriteData(this.crudLambda);
+        props.bucket.grantReadWrite(this.crudLambda);
 
         this.authorizer = new lambda.Function(this, 'Authorizer', {
             runtime: lambda.Runtime.NODEJS_20_X,
@@ -44,13 +50,18 @@ export class LambdaService extends Construct {
                 TABLE_NAME: props.table.tableName,
             },
         });
-
-        // Grant permissions
-        props.table.grantReadData(this.loginLambda);
-
-        props.table.grantReadWriteData(this.crudLambda);
-        props.bucket.grantReadWrite(this.crudLambda);
-
         props.table.grantReadData(this.authorizer);
+
+        this.controler = new lambda.Function(this, 'Controler', {
+            runtime: lambda.Runtime.NODEJS_20_X,
+            handler: 'control.handler',
+            memorySize: 128,
+            code: lambda.Code.fromAsset(this.lambdaBuildDir),
+            environment: {
+                TABLE_NAME: props.table.tableName,
+            },
+        });
+
+        props.table.grantReadWriteData(this.controler);
     }
 }
