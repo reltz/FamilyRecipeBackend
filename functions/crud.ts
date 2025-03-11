@@ -1,7 +1,9 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { APIGatewayEvent, Context } from 'aws-lambda';
-import { Database } from './db-helper';
+import { APIGatewayEvent } from 'aws-lambda';
+import { CreateRecipeParams, Database } from './db-helper';
+import { MakeRecipeWithFile } from './busboy-helper';
+
 
 // Create a DynamoDB client
 const client = new DynamoDBClient({ region: 'ca-central-1' });
@@ -9,6 +11,7 @@ const client = new DynamoDBClient({ region: 'ca-central-1' });
 const dynamoDb = DynamoDBDocumentClient.from(client);
 
 export async function handler(event: APIGatewayEvent) {
+ 
   const tableName = process.env.TABLE_NAME;
   if (!tableName) {
     throw new Error('Table name not set');
@@ -24,6 +27,7 @@ export async function handler(event: APIGatewayEvent) {
   }
   // const username = authorizerContext.username; // Example: 'user123'
   const familyId = authorizerContext.familyId; // Example: 'potato123'
+  const familyName = authorizerContext.familyName;
 
 
   const path = event.path;
@@ -41,8 +45,25 @@ export async function handler(event: APIGatewayEvent) {
   }
 
   if (path.includes('/recipes/create') && method === 'POST') {
-    throw new Error("create recipe not implemented");
-    // return { statusCode: 201, body: JSON.stringify({ message: `Potato created: ${body?.name}` }) };
+    const recipe = await MakeRecipeWithFile(event);
+
+    const recipeInput: CreateRecipeParams = {
+      familyId,
+      familyName,
+      preparation: recipe.preparation,
+      ingredients: recipe.ingredients,
+      recipeName: recipe.recipeName,
+    }
+
+    if(recipe.file && recipe.fileName) {
+      // ADD IMAGE TO S3 BUCKET HERE!
+      recipeInput.imageUrl = "https://example.com";
+    }
+
+
+    await database.createRecipe(recipeInput);
+
+    return { statusCode: 201, body: JSON.stringify({ message: `Recipe created: ${body?.name}` }) };
   }
 
   return { statusCode: 404, body: JSON.stringify({ error: 'Route not found' }) };

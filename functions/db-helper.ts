@@ -38,6 +38,15 @@ export interface DBUser extends DBBase {
 
 export interface DBFamily extends DBBase { }
 
+export interface CreateRecipeParams {
+    familyId: string;
+    familyName: string;
+    recipeName: string;
+    preparation: string;
+    ingredients?: string;
+    imageUrl?: string;
+}
+
 export interface DBSecret {
     id: string;
     PK: string; // Partition key, could be the name or an identifier for the key pair
@@ -104,8 +113,9 @@ export class Database {
     }
 
 
-    public async createRecipe(): Promise<void> {
-        // Implement the createRecipe method            
+    public async createRecipe(params: CreateRecipeParams): Promise<void> {
+        // Implement the createRecipe method     
+        throw new Error("create recipe not implemented");       
     }
 
     public async createUser(username: string, password: string, familyId: string, familyName: string) {
