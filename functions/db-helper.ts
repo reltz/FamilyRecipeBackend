@@ -1,6 +1,6 @@
 
-import { GetItemCommand, PutItemCommand } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
+import { GetItemCommand, PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { randomBytes, createHmac, generateKeyPairSync  } from "crypto";
 import { v4 } from 'uuid';
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
@@ -105,7 +105,13 @@ export class Database {
     
         try {
             const result = await this.dynamoDB.send(new QueryCommand(params)); // Use QueryCommand and client.send()
-            return result.Items as DBRecipe[];  // Return all recipes
+
+            if (!result.Items || result.Items.length === 0) return [];
+    
+            return result.Items.map((item) => {
+                const recipe = unmarshall(item) as DBRecipe;
+                return recipe;
+            });
         } catch (error) {
             console.error("Error querying recipes:", error);
             throw error;
@@ -244,21 +250,20 @@ export class Database {
 
     public async getPublicSecrets(): Promise<{ keyId: string; publicKey: string }[]> {
         try {
-
-            const expressionAtts = 
-                {
-                    ":pk":{S:  Database.makePK(EntityType.Secret, "PEM") },
-                    ":skPrefix": {S:  String(Database.makeSK(EntityType.Secret,"PUBLIC#"))}, // Fetch all public keys
-                };
-
-                console.log(`ExpressionAttributeValues: ${JSON.stringify(expressionAtts)}`)
-            
+            const pkValue = Database.makePK(EntityType.Secret, "PEM");
+            const skPrefixValue = Database.makeSK(EntityType.Secret, "PUBLIC#");
+        
+            const params: QueryCommandInput = {
+                TableName: this.tableName,
+                KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",  
+                ExpressionAttributeValues: {
+                    ":pk": { S: pkValue },
+                    ":skPrefix": { S: skPrefixValue }
+                }
+            };
+        
             const result = await this.dynamoDB.send(
-                new QueryCommand({
-                    TableName: this.tableName,
-                    KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",
-                    ExpressionAttributeValues: expressionAtts
-                })
+                new QueryCommand(params)
             );
     
             if (!result.Items || result.Items.length === 0) return [];

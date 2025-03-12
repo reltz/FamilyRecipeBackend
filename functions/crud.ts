@@ -36,7 +36,7 @@ export async function handler(event: APIGatewayEvent) {
   const body = event.body ? JSON.parse(event.body) : null;
 
   //TEST
-  if (path.includes('/') && method == 'GET') {
+  if (path.includes('/recipes/test') && method == 'GET') {
     return { statusCode: 200, body: JSON.stringify({message: "success"}) };
   }
 

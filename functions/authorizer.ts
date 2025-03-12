@@ -8,6 +8,7 @@ import { Database } from './db-helper';
 export interface AuthToken extends jwt.JwtPayload {
   username: string;
   familyId: string;
+  familyName: string;
 }
 
 // Create a DynamoDB client
@@ -45,15 +46,17 @@ export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<AP
 }
 
 function verifyToken(token: string, secret: string): any {
-  const decoded: AuthToken = jwt.verify(token, secret) as AuthToken;
+  let decoded: AuthToken = jwt.verify(token, secret) as AuthToken;
+  
+  console.log('Token payload is: ', decoded);
 
   if (typeof decoded === 'string') {
-    console.log('Token payload is a string, which is unexpected:', decoded);
+    decoded = JSON.parse(decoded);
     throw new Error('Unauthorized'); // Treat it as an error if it's a string
   }
 
-  if (!decoded.sub || !decoded.familyId) {
-    console.log('Token payload is a string, which is unexpected:', decoded);
+  if (!decoded.username || !decoded.familyId || !decoded.familyName) {
+    console.log('Token payload is missing fields', decoded);
     throw new Error('Unauthorized'); // Treat it as an error if it's a string
   }
 
@@ -77,8 +80,9 @@ function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource:
     principalId,
     policyDocument,
     context: {
-      username: decodedToken.sub,
-      familyId: decodedToken.familyId
+      username: decodedToken.username,
+      familyId: decodedToken.familyId,
+      familyName: decodedToken.familyName
     }
   };
 }
