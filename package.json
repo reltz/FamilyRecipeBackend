@@ -10,7 +10,8 @@
     "test": "jest",
     "cdk": "cdk",
     "build-lambdas": "cd ./functions && rimraf ./dist && npm run build",
-    "build-cdk": "cdk synth"
+    "build-cdk": "cdk synth",
+    "deploy-cdk": "cdk deploy"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

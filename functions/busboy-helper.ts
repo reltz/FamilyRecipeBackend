@@ -1,6 +1,6 @@
 import { APIGatewayEvent } from 'aws-lambda';
-import * as Busboy from 'busboy';
 import { Stream } from 'stream';
+import Busboy from 'busboy';
 
 export async function MakeRecipeWithFile(event: APIGatewayEvent): Promise<{ recipeName: string, preparation: string, ingredients: string, file?: Stream, fileName?: string }> {
   return new Promise((resolve, reject) => {
