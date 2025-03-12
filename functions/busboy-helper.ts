@@ -10,7 +10,6 @@ export async function MakeRecipeWithFile(event: APIGatewayEvent): Promise<{ reci
     let preparation = '';
     let ingredients = '';
     let file: Stream | undefined;
-    let fileName: string | undefined;
 
     busboy.on("field", (fieldName, val) => {
       switch(fieldName) {
@@ -26,15 +25,14 @@ export async function MakeRecipeWithFile(event: APIGatewayEvent): Promise<{ reci
       }
     });
 
-    busboy.on('file', (fieldName: string, fileStream: Stream, name: string) => {
+    busboy.on('file', (fieldName: string, fileStream: Stream) => {
       if (fieldName === 'photo') {
         file = fileStream;
-        fileName = name;
       }
     });
 
     busboy.on('finish', () => {
-      resolve({ recipeName, preparation, ingredients, file, fileName });
+      resolve({ recipeName, preparation, ingredients, file });
     });
 
     busboy.on('error', (error: any) => {

@@ -13,8 +13,7 @@ export class LambdaService extends Construct {
 
 
 
-    // constructor(scope: Construct, id: string, props: { table: dynamodb.Table; bucket: s3.Bucket }) {
-    constructor(scope: Construct, id: string, props: { table: dynamodb.Table; }) {
+    constructor(scope: Construct, id: string, props: { table: dynamodb.Table; bucket: s3.Bucket }) {
         super(scope, id);
 
         this.loginLambda = MakeLambda({
@@ -32,10 +31,10 @@ export class LambdaService extends Construct {
             name: 'CrudFunction',
             scope: this,
             tableName: props.table.tableName,
-            // bucketName: props.bucket.bucketName,
+            bucketName: props.bucket.bucketName,
         })
         props.table.grantReadWriteData(this.crudLambda);
-        // props.bucket.grantReadWrite(this.crudLambda);
+        props.bucket.grantReadWrite(this.crudLambda);
 
 
         this.authorizer = MakeLambda({

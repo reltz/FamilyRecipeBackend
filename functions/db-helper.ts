@@ -59,6 +59,17 @@ export interface DBSecret {
 }
 
 
+export interface ListRecipeParams {
+    familyId: string;
+    limit: number;
+    lastEvaluatedKey?: Record<string, any>
+}
+
+export interface ListRecipesResponse {
+    recipes: DBRecipe[];
+    lastEvaluatedKey?: { [key: string]: any };
+}
+
 
 export class Database {
     constructor(public readonly dynamoDB: DynamoDBDocumentClient, public readonly tableName: string){}
@@ -93,25 +104,43 @@ export class Database {
         }
     }
 
-    public async listRecipes(familyId: string): Promise<DBRecipe[]> {
-        const params: QueryCommandInput = {
+    public async listRecipes(inputParams: ListRecipeParams): Promise<ListRecipesResponse> {
+        const {familyId, limit, lastEvaluatedKey } = inputParams;
+        const pkValue = Database.makePK(EntityType.Family, familyId);
+        const skPrefixValue = Database.makeSK(EntityType.Recipe,'RECIPE#');
+
+
+        let params: QueryCommandInput = {
             TableName: this.tableName,
-            KeyConditionExpression: 'PK = :pk and begins_with(SK, :sk)', // Query for all recipes under the family
+            KeyConditionExpression: 'PK = :pk and begins_with(SK, :skPrefix)', // Query for all recipes under the family
             ExpressionAttributeValues: {
-                ':pk': Database.makePK(EntityType.Family, familyId),  // Set PK to FAMILY#<familyId>
-                ':sk': 'RECIPE#'             // Set SK prefix to "RECIPE#"
-            }
+                ":pk": { S: pkValue },
+                ":skPrefix": { S: skPrefixValue }
+            },
+            Limit: limit ?? 10
         };
+
+        if(lastEvaluatedKey) {
+            params.ExclusiveStartKey= lastEvaluatedKey // For pagination, pass the LastEvaluatedKey from the previous query
+        }
     
         try {
             const result = await this.dynamoDB.send(new QueryCommand(params)); // Use QueryCommand and client.send()
 
-            if (!result.Items || result.Items.length === 0) return [];
+            console.log(`Result of query: ${JSON.stringify(result)}`);
+
+            if (!result.Items || result.Items.length === 0) return {recipes: []};
     
-            return result.Items.map((item) => {
-                const recipe = unmarshall(item) as DBRecipe;
-                return recipe;
-            });
+          const recipes = result.Items.map((item) => unmarshall(item) as DBRecipe);
+
+          const response: ListRecipesResponse = {
+            recipes,
+          };
+
+          if(result.LastEvaluatedKey) {
+            response.lastEvaluatedKey = result.LastEvaluatedKey;
+          }
+          return response;
         } catch (error) {
             console.error("Error querying recipes:", error);
             throw error;
@@ -121,7 +150,32 @@ export class Database {
 
     public async createRecipe(params: CreateRecipeParams): Promise<void> {
         // Implement the createRecipe method     
-        throw new Error("create recipe not implemented");       
+        const {familyId, familyName, preparation, recipeName, ingredients} = params;
+        const timestamp = new Date().toISOString();
+        const recipeId = v4();
+       
+        const recipeToInsert: DBRecipe = {
+            familyId,
+            faimilyName: familyName, 
+            createdAt: timestamp,
+            updatedAt: timestamp,
+            entityType: EntityType.User,
+            PK: Database.makePK(EntityType.Recipe, familyId),
+            SK: Database.makeSK(EntityType.Recipe, recipeId),
+            id: recipeId,
+            name: recipeName,
+            preparation,
+        }
+        if(ingredients) {
+            recipeToInsert.ingredients = ingredients;
+        }
+
+        await this.dynamoDB.send(
+            new PutItemCommand({
+                TableName: this.tableName, // Replace with actual table name
+                Item: marshall(recipeToInsert),
+            })
+        );
     }
 
     public async createUser(username: string, password: string, familyId: string, familyName: string) {

@@ -11,7 +11,13 @@ export class StorageService extends Construct {
 
         this.bucket = new s3.Bucket(this, 'RecipeStorageBucket', {
             removalPolicy: RemovalPolicy.DESTROY, // Change to RETAIN for production
-            autoDeleteObjects: true, // Deletes all objects when the bucket is deleted
+            autoDeleteObjects: true, // Deletes all objects when the bucket is deleted,
+            blockPublicAccess: new s3.BlockPublicAccess({
+                blockPublicAcls: true,   // Keep ACLs private (recommended by AWS)
+                blockPublicPolicy: false, // 🔹 ALLOW public policies
+                ignorePublicAcls: true,  // Ignore public ACLs
+                restrictPublicBuckets: false // 🔹 Don't restrict bucket-wide policies
+            }),
         });
 
         // Grant public read access to objects in the /public-images folder

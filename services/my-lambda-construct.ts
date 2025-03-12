@@ -13,14 +13,18 @@ export interface MakeLambdaProps {
 export function MakeLambda(props: MakeLambdaProps) {
     const { scope, name, fileName, tableName, bucketName } = props;
     const lambdaBuildDir = "./functions/dist";
+    const env: Record<string,string> = {
+        TABLE_NAME: tableName
+    };
+    if(props.bucketName) {
+        env.BUCKET_NAME = props.bucketName
+    }
     return new lambda.Function(scope, name, {
         runtime: lambda.Runtime.NODEJS_20_X,
         memorySize: 128,
         code: lambda.Code.fromAsset(lambdaBuildDir),
         handler: `${fileName}.handler`,
-        environment: {
-            TABLE_NAME: tableName,
-        },
+        environment: env,
         logRetention: logs.RetentionDays.ONE_WEEK, 
     });
 }
