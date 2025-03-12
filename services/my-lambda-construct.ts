@@ -1,5 +1,6 @@
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import { Construct } from 'constructs';
+import * as logs from 'aws-cdk-lib/aws-logs';
 
 
 export interface MakeLambdaProps {
@@ -20,5 +21,6 @@ export function MakeLambda(props: MakeLambdaProps) {
         environment: {
             TABLE_NAME: tableName,
         },
+        logRetention: logs.RetentionDays.ONE_WEEK, 
     });
 }

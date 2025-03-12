@@ -1,6 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { APIGatewayEvent, Context } from 'aws-lambda';
+import { APIGatewayEvent } from 'aws-lambda';
 import * as jwt from 'jsonwebtoken'; // npm install jsonwebtoken
 import { Database, hashPassword } from './db-helper';
 
@@ -46,7 +46,8 @@ export async function handler(event: APIGatewayEvent) {
 
 
   // Generate JWT token
-  const token = jwt.sign({ username, familyName: user.faimilyName, familyId: user.familyId }, privatePem, { expiresIn: '1D' });
+   const token = jwt.sign({ username, familyName: user.faimilyName, familyId: user.familyId }, privatePem, { algorithm: 'ES256', expiresIn: '1D' });
+
 
   return {
     statusCode: 200,

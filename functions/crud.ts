@@ -21,6 +21,7 @@ export async function handler(event: APIGatewayEvent) {
   console.log('Received event:', JSON.stringify(event, null, 2));
 
   const authorizerContext = event.requestContext.authorizer;
+  console.log(`Authorizer context: ${JSON.stringify(authorizerContext)}`);
 
   if(!authorizerContext || !authorizerContext.username || !authorizerContext.familyId) {
     throw new Error("Token missing info!");

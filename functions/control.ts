@@ -9,17 +9,16 @@ interface ControlBaseEvent {
 interface CreateUserEvent extends CreateFamilyEvent {
     username: string;
     password: string;
+    familyId: string;
 }
 
 interface CreateFamilyEvent extends ControlBaseEvent {
-    familyId: string;
     familyName: string;
 }
 
 interface CreateSecretEvent extends ControlBaseEvent {
     action: "create" | "rotate"
 }
-
 
 const client = new DynamoDBClient({ region: 'ca-central-1' });
 const dynamoDb = DynamoDBDocumentClient.from(client);
@@ -35,13 +34,16 @@ export async function handler(event: CreateUserEvent | CreateFamilyEvent | Creat
     try {
         switch(event.operation) {
             case 'family':
-                createFamily(database, event as CreateFamilyEvent );
+                console.log(`Creating family`);
+                await createFamily(database, event as CreateFamilyEvent );
                 break;
             case 'user': 
-                createUser(database, event as CreateUserEvent);
+                console.log(`Creating user`);
+                await createUser(database, event as CreateUserEvent);
                 break;
             case 'secret':
-                createRotateSecret(database, event as CreateSecretEvent);
+                console.log(`Creating secret`);
+                await createRotateSecret(database, event as CreateSecretEvent);
                 break;
         }
 

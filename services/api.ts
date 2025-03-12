@@ -26,7 +26,7 @@ export class APIService extends Construct {
 
         // Login
         const loginIntegration = new apiGateway.LambdaIntegration(props.loginLambda);
-        this.api.root.addResource('login').addMethod('GET', loginIntegration);
+        this.api.root.addResource('login').addMethod('POST', loginIntegration);
 
         // CRUD
         const crudIntegration = new apiGateway.LambdaIntegration(props.crudLambda);

@@ -161,6 +161,7 @@ export class Database {
             entityType: EntityType.Family
         }
 
+        console.log(`Creating family: ${JSON.stringify(dbFamily)}`);
         await this.dynamoDB.send(
             new PutItemCommand({
                 TableName: this.tableName, 
@@ -243,14 +244,20 @@ export class Database {
 
     public async getPublicSecrets(): Promise<{ keyId: string; publicKey: string }[]> {
         try {
+
+            const expressionAtts = 
+                {
+                    ":pk":{S:  Database.makePK(EntityType.Secret, "PEM") },
+                    ":skPrefix": {S:  String(Database.makeSK(EntityType.Secret,"PUBLIC#"))}, // Fetch all public keys
+                };
+
+                console.log(`ExpressionAttributeValues: ${JSON.stringify(expressionAtts)}`)
+            
             const result = await this.dynamoDB.send(
                 new QueryCommand({
                     TableName: this.tableName,
                     KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",
-                    ExpressionAttributeValues: marshall({
-                        ":pk": Database.makePK(EntityType.Secret, "PEM"),
-                        ":skPrefix": "PUBLIC#", // Fetch all public keys
-                    }),
+                    ExpressionAttributeValues: expressionAtts
                 })
             );
     
