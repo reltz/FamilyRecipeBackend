@@ -39,7 +39,13 @@ export async function MakeRecipeWithFile(event: APIGatewayEvent): Promise<{ reci
       reject(error);
     });
 
-    busboy.write(event.body, 'base64');
-    busboy.end();
+    if (event.body) {
+      const body = event.isBase64Encoded ? Buffer.from(event.body, 'base64') : event.body;
+
+      busboy.write(body);
+      busboy.end();
+    } else {
+      reject(new Error("Request body is empty"));
+    }
   });
 }

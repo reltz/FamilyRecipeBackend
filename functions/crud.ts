@@ -35,7 +35,7 @@ export async function handler(event: APIGatewayEvent) {
 
   const path = event.path;
   const method = event.httpMethod;
-  const body = event.body ? JSON.parse(event.body) : null;
+  // const body = event.body ? (event.isBase64Encoded ? Buffer.from(event.body, 'base64') : JSON.parse(event.body)) : null;
 
   //TEST
   if (path.includes('/recipes/test') && method == 'GET') {
@@ -57,7 +57,9 @@ export async function handler(event: APIGatewayEvent) {
     }
     
     const listResponse = await database.listRecipes(dbRequest);
-    return { statusCode: 200, body: JSON.stringify(listResponse) };
+    return { statusCode: 200, body: JSON.stringify(listResponse),  headers: {
+      'Access-Control-Allow-Origin': '*' // testing
+    } };
   }
 
   if (path.includes('/recipes/create') && method === 'POST') {
@@ -83,8 +85,12 @@ export async function handler(event: APIGatewayEvent) {
 
     await database.createRecipe(recipeInput);
 
-    return { statusCode: 201, body: JSON.stringify({ message: `Recipe created: ${body?.name}` }) };
+    return { statusCode: 201, headers: {
+      'Access-Control-Allow-Origin': '*' // testing
+    }  };
   }
 
-  return { statusCode: 404, body: JSON.stringify({ error: 'Route not found' }) };
+  return { statusCode: 404, body: JSON.stringify({ error: 'Route not found' }),  headers: {
+    'Access-Control-Allow-Origin': '*' // testing
+  }  };
 }

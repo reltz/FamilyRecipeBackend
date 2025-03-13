@@ -52,5 +52,8 @@ export async function handler(event: APIGatewayEvent) {
   return {
     statusCode: 200,
     body: JSON.stringify({ message: 'Login successful', token }),
+    headers: {
+      'Access-Control-Allow-Origin': '*' // testing
+    }
   };
 }
