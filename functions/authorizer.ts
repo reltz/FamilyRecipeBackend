@@ -38,7 +38,9 @@ export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<AP
     const decoded = verifyToken(token, secret.publicKey);
 
     // Return an IAM policy allowing access
-    return generatePolicy(decoded.sub, 'Allow', event.methodArn, decoded);
+
+    console.log(`Authorizer: decoded sub :${decoded.username}, methorARN: ${event.methodArn}`)
+    return generatePolicy(decoded.username, 'Allow', event.methodArn, decoded);
   } catch (err) {
     console.log('Token verification failed', err);
     throw new Error('Unauthorized');

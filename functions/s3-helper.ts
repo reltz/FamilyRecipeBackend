@@ -13,16 +13,23 @@ async function streamToBuffer(stream: Stream): Promise<Buffer> {
 }
 
 export async function uploadFileToS3(file: Stream, fileName: string, s3BucketName: string): Promise<string> {
+  console.log(`Will upload to s3!`);
+
+  console.log(`Filename: ${fileName}, bucketname: ${s3BucketName}`)
   const buffer = await streamToBuffer(file);
   
   const basePath = "public-images/recipes";
-  await s3.send(new PutObjectCommand({
-    Bucket: s3BucketName,
-    Key: `basePath/${fileName}`,
-    Body: buffer,
-    ContentType: "image/jpeg", // Change dynamically if needed
-    ACL: "public-read"
-  }));
+  try {
+    await s3.send(new PutObjectCommand({
+      Bucket: s3BucketName,
+      Key: `basePath/${fileName}`,
+      Body: buffer,
+      ContentType: "image/jpeg", // Change dynamically if needed
+      ACL: "public-read"
+    }));
+  } catch(er) {
+    console.error(`Eror saving to s3: ${JSON.stringify(er)}`);
+  }
 
   return `https://${s3BucketName}.s3.ca-central-1.amazonaws.com/${basePath}/${fileName}`;
 }

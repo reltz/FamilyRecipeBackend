@@ -4,6 +4,7 @@ import { DynamoDBDocumentClient, QueryCommandInput } from '@aws-sdk/lib-dynamodb
 import { randomBytes, createHmac, generateKeyPairSync  } from "crypto";
 import { v4 } from 'uuid';
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
+import { Recipe } from './schemas';
 
 export enum EntityType {
     Family = 'Family',
@@ -26,6 +27,7 @@ export interface DBRecipe extends DBBase {
     familyId: string;
     faimilyName: string;
     preparation: string;
+    author: string;
     ingredients?: string;
     imageUrl?: string;
 }
@@ -43,6 +45,7 @@ export interface CreateRecipeParams {
     familyName: string;
     recipeName: string;
     preparation: string;
+    author: string;
     ingredients?: string;
     imageUrl?: string;
 }
@@ -66,7 +69,7 @@ export interface ListRecipeParams {
 }
 
 export interface ListRecipesResponse {
-    recipes: DBRecipe[];
+    recipes: Recipe[];
     lastEvaluatedKey?: { [key: string]: any };
 }
 
@@ -107,7 +110,7 @@ export class Database {
     public async listRecipes(inputParams: ListRecipeParams): Promise<ListRecipesResponse> {
         const {familyId, limit, lastEvaluatedKey } = inputParams;
         const pkValue = Database.makePK(EntityType.Family, familyId);
-        const skPrefixValue = Database.makeSK(EntityType.Recipe,'RECIPE#');
+        const skPrefixValue = Database.makeSK(EntityType.Recipe,'');
 
 
         let params: QueryCommandInput = {
@@ -131,10 +134,24 @@ export class Database {
 
             if (!result.Items || result.Items.length === 0) return {recipes: []};
     
-          const recipes = result.Items.map((item) => unmarshall(item) as DBRecipe);
+          const recipes: DBRecipe[] = result.Items.map((item) => unmarshall(item) as DBRecipe);
+
+          const outPutRecipes: Recipe[] = recipes.map(r => {
+            return {
+                id: r.id,
+                name: r.name,
+                author: r.author,
+                familyId: r.familyId,
+                familyName: r.faimilyName,
+                preparation: r.preparation,
+                createdAt: r.createdAt,
+                ingredients: r.ingredients ?? "",
+                photoUrl: r.imageUrl ?? ""
+            }
+          })
 
           const response: ListRecipesResponse = {
-            recipes,
+            recipes: outPutRecipes,
           };
 
           if(result.LastEvaluatedKey) {
@@ -149,8 +166,10 @@ export class Database {
 
 
     public async createRecipe(params: CreateRecipeParams): Promise<void> {
+
+        console.log(`Will save recipe to DB!`);
         // Implement the createRecipe method     
-        const {familyId, familyName, preparation, recipeName, ingredients} = params;
+        const {familyId, familyName, preparation, recipeName, ingredients, author} = params;
         const timestamp = new Date().toISOString();
         const recipeId = v4();
        
@@ -159,12 +178,13 @@ export class Database {
             faimilyName: familyName, 
             createdAt: timestamp,
             updatedAt: timestamp,
-            entityType: EntityType.User,
+            entityType: EntityType.Recipe,
             PK: Database.makePK(EntityType.Recipe, familyId),
             SK: Database.makeSK(EntityType.Recipe, recipeId),
             id: recipeId,
             name: recipeName,
             preparation,
+            author
         }
         if(ingredients) {
             recipeToInsert.ingredients = ingredients;

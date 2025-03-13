@@ -4,6 +4,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import { MakeLambda } from './my-lambda-construct';
+import { Duration } from 'aws-cdk-lib';
 
 export class LambdaService extends Construct {
     public readonly loginLambda: lambda.Function;
@@ -32,6 +33,9 @@ export class LambdaService extends Construct {
             scope: this,
             tableName: props.table.tableName,
             bucketName: props.bucket.bucketName,
+            memory: 512,
+            timeout: Duration.minutes(1)
+
         })
         props.table.grantReadWriteData(this.crudLambda);
         props.bucket.grantReadWrite(this.crudLambda);
