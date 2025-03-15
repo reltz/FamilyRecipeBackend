@@ -20,6 +20,11 @@ export class FamilyRecipeStack extends cdk.Stack {
       bucket: storage.bucket,
     })
 
-    new APIService(this, 'api-service', { loginLambda: lambdas.loginLambda, crudLambda: lambdas.crudLambda, authorizer: lambdas.authorizer });
+    new APIService(this, 'api-service', {
+      loginLambda: lambdas.loginLambda, 
+      crudLambda: lambdas.crudLambda, 
+      authorizer: lambdas.authorizer,
+      s3PreSignedLambda: lambdas.preSignedUrl
+    });
   }
 }

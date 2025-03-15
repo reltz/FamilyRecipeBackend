@@ -1,15 +1,14 @@
 import { Cors } from 'aws-cdk-lib/aws-apigateway';
 import * as apiGateway from 'aws-cdk-lib/aws-apigateway';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
-import * as iam from 'aws-cdk-lib/aws-iam';
 import { Duration } from 'aws-cdk-lib';
 
 export interface APIServiceProps {
     loginLambda: lambda.Function;
     crudLambda: lambda.Function;
     authorizer: lambda.Function;
+    s3PreSignedLambda: lambda.Function;
 }
 
 export class APIService extends Construct {
@@ -19,17 +18,16 @@ export class APIService extends Construct {
         super(scope, id);
 
         this.api = new apiGateway.RestApi(this, 'FamilyRecipeAPI', {
-            binaryMediaTypes: ['multipart/form-data'], // add this line
             deployOptions: {
-                loggingLevel: apiGateway.MethodLoggingLevel.OFF,
-                dataTraceEnabled: false, // Logs input/output for API request
+                // loggingLevel: apiGateway.MethodLoggingLevel.OFF,
+                // dataTraceEnabled: false, // Logs input/output for API request
             }
         });
 
         // Authorizer
         const jwtAuthorizer = new apiGateway.TokenAuthorizer(this, 'JwtAuthorizer', {
             handler: props.authorizer,
-            resultsCacheTtl: Duration.seconds(0)
+            // resultsCacheTtl: Duration.seconds(0)
         });
 
         // Login
@@ -64,6 +62,53 @@ export class APIService extends Construct {
                 allowHeaders: ['Content-Type', 'Authorization'],
             },
         });
+
+
+        // PRE-SIGNED PHOTO URL
+        const preSignedIntegration = new apiGateway.LambdaIntegration(props.s3PreSignedLambda);
+        const getPreSignedUrlForPhotoUpload = recipesResource.addResource('get-bucket-url');
+        getPreSignedUrlForPhotoUpload.addMethod('GET',  preSignedIntegration, {
+            authorizer: jwtAuthorizer,
+            methodResponses: [{
+                statusCode: '200',
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }, {
+                statusCode: '400', // Bad Request
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            },
+            {
+                statusCode: '403', 
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }, 
+            {
+                statusCode: '404', 
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }, 
+            {
+                statusCode: '500', // Internal Server Error
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }],
+        })
 
         const listRecipesResource = recipesResource.addResource('list-recipes');
         listRecipesResource.addMethod('GET', crudIntegration, {
@@ -128,19 +173,5 @@ export class APIService extends Construct {
                 },
             }],
         });
-
-        // const proxyResource = recipesResource.addResource('{proxy+}');
-
-        // proxyResource.addMethod('ANY', crudIntegration, {
-        //     authorizer: jwtAuthorizer,
-        //     methodResponses: [{
-        //         statusCode: '200',
-        //         responseParameters: {
-        //             'method.response.header.Access-Control-Allow-Origin': true,
-        //             'method.response.header.Access-Control-Allow-Methods': true,
-        //             'method.response.header.Access-Control-Allow-Headers': true,
-        //         },
-        //     }],
-        // });
     }
 }

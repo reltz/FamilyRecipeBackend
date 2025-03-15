@@ -1,35 +1,29 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { Stream } from "stream";
+import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
-const s3 = new S3Client({ region: "us-east-1" }); // Change to your AWS region
-
-async function streamToBuffer(stream: Stream): Promise<Buffer> {
-  const chunks: Uint8Array[] = [];
-  return new Promise((resolve, reject) => {
-    stream.on("data", (chunk) => chunks.push(chunk));
-    stream.on("end", () => resolve(Buffer.concat(chunks)));
-    stream.on("error", reject);
-  });
+export interface PreSignedURLParams {
+  s3Client: S3Client;
+  bucket: string;
+  fileName: string;
+  familyId: string;
 }
 
-export async function uploadFileToS3(file: Stream, fileName: string, s3BucketName: string): Promise<string> {
-  console.log(`Will upload to s3!`);
+export async function generatePreSignedUrl(params: PreSignedURLParams) {
+  const {s3Client, bucket, fileName, familyId} = params;
 
-  console.log(`Filename: ${fileName}, bucketname: ${s3BucketName}`)
-  const buffer = await streamToBuffer(file);
-  
-  const basePath = "public-images/recipes";
-  try {
-    await s3.send(new PutObjectCommand({
-      Bucket: s3BucketName,
-      Key: `basePath/${fileName}`,
-      Body: buffer,
-      ContentType: "image/jpeg", // Change dynamically if needed
-      ACL: "public-read"
-    }));
-  } catch(er) {
-    console.error(`Eror saving to s3: ${JSON.stringify(er)}`);
-  }
+  console.log(`filename: ${fileName}, familyId: ${familyId}`);
 
-  return `https://${s3BucketName}.s3.ca-central-1.amazonaws.com/${basePath}/${fileName}`;
+  const fileKey = `public-images/${familyId}/${Date.now()}-${fileName}`; // dynamic file name
+  const s3Params = {
+      Bucket: bucket,
+      Key: fileKey,
+      ContentType: 'image/*',
+  };
+
+  const command = new PutObjectCommand(s3Params);
+  // valid for 1h
+  const url = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+
+  console.log('Pre-signed URL:', url);
+  return url;
 }
