@@ -8,7 +8,7 @@ export interface MakeLambdaProps {
     scope: Construct;
     name: string;
     fileName: string;
-    tableName: string;
+    tableName?: string;
     bucketName?: string;
     timeout?: Duration;
     memory?: number;
@@ -16,11 +16,12 @@ export interface MakeLambdaProps {
 export function MakeLambda(props: MakeLambdaProps) {
     const { scope, name, fileName, tableName, bucketName } = props;
     const lambdaBuildDir = "./functions/dist";
-    const env: Record<string,string> = {
-        TABLE_NAME: tableName
-    };
-    if(props.bucketName) {
-        env.BUCKET_NAME = props.bucketName
+    const env: Record<string,string> = {};
+    if(bucketName) {
+        env.BUCKET_NAME = bucketName
+    }
+    if(tableName) {
+        env.TABLE_NAME= tableName
     }
 
     return new lambda.Function(scope, name, {

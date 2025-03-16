@@ -3,6 +3,7 @@ import * as jwt from 'jsonwebtoken';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { Database } from './db-helper';
+import { REGION } from './consts';
 
 
 export interface AuthToken extends jwt.JwtPayload {
@@ -12,7 +13,7 @@ export interface AuthToken extends jwt.JwtPayload {
 }
 
 // Create a DynamoDB client
-const client = new DynamoDBClient({ region: 'ca-central-1' });
+const client = new DynamoDBClient({ region: REGION });
 // Create a DynamoDB Document Client
 const dynamoDb = DynamoDBDocumentClient.from(client);
 
@@ -49,7 +50,7 @@ export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<AP
 
 function verifyToken(token: string, secret: string): any {
   let decoded: AuthToken = jwt.verify(token, secret) as AuthToken;
-  
+
   console.log('Token payload is: ', decoded);
 
   if (typeof decoded === 'string') {
@@ -68,13 +69,30 @@ function verifyToken(token: string, secret: string): any {
 
 // Function to generate an IAM policy
 function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource: string, decodedToken: AuthToken) {
+  const parts = resource.split(':');
+
+  const region = parts[3];
+  const accountId = parts[4];
+  const apiPath = parts[5]; // 123/prod/GET/recipes/list-recipes
+
+  const apiParts = apiPath.split('/');
+  const apiId = apiParts[0];
+  const stage = apiParts[1];
+
+  // const isRecipe = apiParts[3];
+  // if (isRecipe !== "recipes") {
+  //   // THROW ERROR IF POLICY IS FOR ANOTHER NEW ENDPOINT
+  // }
+
+  const arn = `arn:aws:execute-api:${region}:${accountId}:${apiId}/${stage}/*/recipes/*`
+
   const policyDocument = {
     Version: '2012-10-17',
     Statement: [
       {
         Action: 'execute-api:Invoke',
         Effect: effect,
-        Resource: resource,
+        Resource: arn,
       },
     ],
   };

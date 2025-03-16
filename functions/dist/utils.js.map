@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../utils.ts"],
-  "sourcesContent": ["// Function to encode lastEvaluatedKey into a base64 string\r\nexport function encodeCursor(lastEvaluatedKey: Record<string, any>): string {\r\n    return Buffer.from(JSON.stringify(lastEvaluatedKey)).toString('base64');\r\n}\r\n\r\n\r\nexport function decodeCursor(cursor: string): Record<string, any> | null {\r\n    if (!cursor) return null;\r\n    try {\r\n        const decoded = Buffer.from(cursor, 'base64').toString('utf-8');\r\n        return JSON.parse(decoded);\r\n    } catch (e) {\r\n        console.error(\"Error decoding cursor:\", e);\r\n        return null;\r\n    }\r\n}"],
-  "mappings": ";;;;;;;;;;;;;;;;;;;;AAAA;AAAA;AAAA;AAAA;AAAA;AAAA;AACO,SAAS,aAAa,kBAA+C;AACxE,SAAO,OAAO,KAAK,KAAK,UAAU,gBAAgB,CAAC,EAAE,SAAS,QAAQ;AAC1E;AAGO,SAAS,aAAa,QAA4C;AACrE,MAAI,CAAC,OAAQ,QAAO;AACpB,MAAI;AACA,UAAM,UAAU,OAAO,KAAK,QAAQ,QAAQ,EAAE,SAAS,OAAO;AAC9D,WAAO,KAAK,MAAM,OAAO;AAAA,EAC7B,SAAS,GAAG;AACR,YAAQ,MAAM,0BAA0B,CAAC;AACzC,WAAO;AAAA,EACX;AACJ;",
-  "names": []
-}

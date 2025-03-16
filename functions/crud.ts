@@ -1,22 +1,20 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayEvent } from 'aws-lambda';
-import { CreateRecipeParams, Database, ListRecipeParams } from './db-helper';
-import { MakeRecipeWithFile } from './busboy-helper';
+import { CreateRecipeParams as CreateRecipeDBParams, Database, DBRecipe, ListRecipeParams } from './db-helper';
 import { decodeCursor } from './utils';
-import { uploadFileToS3 } from './s3-helper';
-import { errorMonitor } from 'events';
+import { REGION } from './consts';
+import { CreateRecipeRequestInput } from './schemas';
+import { makeCORSResponse } from './api-helper';
 
 
 // Create a DynamoDB client
-const client = new DynamoDBClient({ region: 'ca-central-1' });
+const client = new DynamoDBClient({ region: REGION });
 // Create a DynamoDB Document Client
 const dynamoDb = DynamoDBDocumentClient.from(client);
 
 export async function handler(event: APIGatewayEvent) {
   try {
-
-
     const tableName = process.env.TABLE_NAME;
 
     if (!tableName) {
@@ -24,7 +22,7 @@ export async function handler(event: APIGatewayEvent) {
     }
     const database = new Database(dynamoDb, tableName);
 
-    console.log('Received event:');
+    console.log('Received event');
 
     const authorizerContext = event.requestContext.authorizer;
     console.log(`Authorizer context: ${JSON.stringify(authorizerContext)}`);
@@ -38,21 +36,11 @@ export async function handler(event: APIGatewayEvent) {
     const userName: string = authorizerContext.username;
 
     if (!familyId) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ message: 'Unauthorized' }),
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
-      };
+      return makeCORSResponse({ statusCode: 401 })
     }
-
 
     const path = event.path;
     const method = event.httpMethod;
-    // const body = event.body ? (event.isBase64Encoded ? Buffer.from(event.body, 'base64') : JSON.parse(event.body)) : null;
 
     //TEST
     if (path.includes('/recipes/test') && method == 'GET') {
@@ -74,13 +62,8 @@ export async function handler(event: APIGatewayEvent) {
       }
 
       const listResponse = await database.listRecipes(dbRequest);
-      return {
-        statusCode: 200, body: JSON.stringify(listResponse), headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
-      };
+
+      return makeCORSResponse({ statusCode: 200, body: listResponse })
     }
 
     if (path.includes('/recipes/create') && method === 'POST') {
@@ -88,60 +71,33 @@ export async function handler(event: APIGatewayEvent) {
       if (!bucketName) {
         throw new Error("missing bucket name on env");
       }
-      const recipe = await MakeRecipeWithFile(event);
 
-      const fileName = `${familyName}-${familyId}/${recipe.recipeName}`;
+      if (!event.body) {
+        return makeCORSResponse({ statusCode: 400, body: { error: "Missing body" } });
+      }
+      const recipe: CreateRecipeRequestInput = JSON.parse(event.body);
 
-      console.log(`After busboy: ${JSON.stringify({
-        name: recipe.recipeName,
-        filename:fileName
-      })}`);
-
-      const recipeInput: CreateRecipeParams = {
+      let recipeInput: CreateRecipeDBParams = {
         familyId,
         familyName,
         preparation: recipe.preparation,
         ingredients: recipe.ingredients,
-        recipeName: recipe.recipeName,
-        author: userName
+        recipeName: recipe.name,
+        author: userName,
+        imageUrl: recipe.photoUrl
       }
 
-      if (recipe.file) {
-        // ADD IMAGE TO S3 BUCKET HERE!
-        console.log(`There is a file!! lets upload to s3!`)
-        recipeInput.imageUrl = await uploadFileToS3(recipe.file, fileName, bucketName)
-
-        console.log(`Success saving to s3? ${recipeInput.imageUrl}`);
-      }
 
       await database.createRecipe(recipeInput);
 
-      return {
-        statusCode: 201, headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type',
-        }
-      };
+      return makeCORSResponse({
+        statusCode: 201
+      });
     }
 
-    return {
-      statusCode: 404, body: JSON.stringify({ error: 'Route not found' }), headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
-    };
+    return makeCORSResponse({statusCode: 404, body: {error: "Route not found"}});
   } catch (er) {
     console.error("Error:", er);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: JSON.stringify(er) || 'Internal Server Error' }),
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-      }
-    };
+    return makeCORSResponse({statusCode: 500, body: {error: JSON.stringify(er)}})
   }
 }

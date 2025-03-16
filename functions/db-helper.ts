@@ -4,7 +4,7 @@ import { DynamoDBDocumentClient, QueryCommandInput } from '@aws-sdk/lib-dynamodb
 import { randomBytes, createHmac, generateKeyPairSync  } from "crypto";
 import { v4 } from 'uuid';
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
-import { Recipe } from './schemas';
+import { FeRecipe } from './schemas';
 
 export enum EntityType {
     Family = 'Family',
@@ -69,7 +69,7 @@ export interface ListRecipeParams {
 }
 
 export interface ListRecipesResponse {
-    recipes: Recipe[];
+    recipes: FeRecipe[];
     lastEvaluatedKey?: { [key: string]: any };
 }
 
@@ -136,7 +136,7 @@ export class Database {
     
           const recipes: DBRecipe[] = result.Items.map((item) => unmarshall(item) as DBRecipe);
 
-          const outPutRecipes: Recipe[] = recipes.map(r => {
+          const outPutRecipes: FeRecipe[] = recipes.map(r => {
             return {
                 id: r.id,
                 name: r.name,
@@ -169,7 +169,7 @@ export class Database {
 
         console.log(`Will save recipe to DB!`);
         // Implement the createRecipe method     
-        const {familyId, familyName, preparation, recipeName, ingredients, author} = params;
+        const {familyId, familyName, preparation, recipeName, ingredients, author, imageUrl} = params;
         const timestamp = new Date().toISOString();
         const recipeId = v4();
        
@@ -184,7 +184,8 @@ export class Database {
             id: recipeId,
             name: recipeName,
             preparation,
-            author
+            author,
+            imageUrl
         }
         if(ingredients) {
             recipeToInsert.ingredients = ingredients;

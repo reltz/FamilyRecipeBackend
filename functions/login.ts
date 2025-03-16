@@ -3,9 +3,10 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayEvent } from 'aws-lambda';
 import * as jwt from 'jsonwebtoken'; // npm install jsonwebtoken
 import { Database, hashPassword } from './db-helper';
+import { REGION } from './consts';
 
 
-const client = new DynamoDBClient({ region: 'ca-central-1' });
+const client = new DynamoDBClient({ region: REGION });
 const dynamoDb = DynamoDBDocumentClient.from(client);
 
 

@@ -11,6 +11,7 @@ export class LambdaService extends Construct {
     public readonly crudLambda: lambda.Function;
     public readonly authorizer: lambda.Function;
     public readonly controler: lambda.Function;
+    public readonly preSignedUrl: lambda.Function;
 
 
 
@@ -33,9 +34,6 @@ export class LambdaService extends Construct {
             scope: this,
             tableName: props.table.tableName,
             bucketName: props.bucket.bucketName,
-            memory: 512,
-            timeout: Duration.minutes(1)
-
         })
         props.table.grantReadWriteData(this.crudLambda);
         props.bucket.grantReadWrite(this.crudLambda);
@@ -56,5 +54,13 @@ export class LambdaService extends Construct {
             tableName: props.table.tableName,
         })
         props.table.grantReadWriteData(this.controler);
+
+
+        this.preSignedUrl = MakeLambda({
+            scope: this,
+            fileName: 'pre-signed-s3',
+            name: 'PreSignedUrlGenerator',
+            bucketName: props.bucket.bucketName,
+        })
     }
 }

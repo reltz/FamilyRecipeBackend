@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": ["../schemas.ts"],
-  "sourcesContent": ["export interface Recipe {\r\n    id: string;\r\n    name: string;\r\n    author: string;\r\n    familyId: string;\r\n    familyName: string;\r\n    preparation: string;\r\n    createdAt: string;\r\n    ingredients?: string;\r\n    photoUrl?: string;\r\n}"],
-  "mappings": ";;;;;;;;;;;;;;;;AAAA;AAAA;",
-  "names": []
-}

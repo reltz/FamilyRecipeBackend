@@ -1,6 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
 import { Database } from "./db-helper";
+import { REGION } from "./consts";
 
 interface ControlBaseEvent {
     operation: "secret" | "user" | "family";
@@ -20,7 +21,28 @@ interface CreateSecretEvent extends ControlBaseEvent {
     action: "create" | "rotate"
 }
 
-const client = new DynamoDBClient({ region: 'ca-central-1' });
+// TEMP
+// const secretEvent: CreateSecretEvent = {
+//     action: "create",
+//     operation: "secret"
+// }
+
+// const famCreate: CreateFamilyEvent = {
+//     familyName: "Mock",
+//     operation: "family"
+// }
+
+// const userCreate: CreateUserEvent = {
+//     familyId: "eadb731a-bd9e-4c28-a53c-fd4aa455818d",
+//     familyName: "Mock",
+//     operation: "user",
+//     password: "mock",
+//     username: "mock"
+// }
+
+// END TEMP
+
+const client = new DynamoDBClient({ region: REGION });
 const dynamoDb = DynamoDBDocumentClient.from(client);
 
 export async function handler(event: CreateUserEvent | CreateFamilyEvent | CreateSecretEvent) {
