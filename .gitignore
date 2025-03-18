@@ -6,3 +6,4 @@ node_modules
 cdk.out
 functions/dist
 /dist
+package-lock.json

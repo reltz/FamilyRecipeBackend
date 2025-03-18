@@ -18,6 +18,12 @@ export class StorageService extends Construct {
                 ignorePublicAcls: true,  // Ignore public ACLs
                 restrictPublicBuckets: false // 🔹 Don't restrict bucket-wide policies
             }),
+            cors: [
+                {
+                    allowedOrigins: ['*'],          // ADD PROPER DOMAIN HERE!
+                    allowedMethods: [s3.HttpMethods.PUT],
+                    allowedHeaders: ['Content-Type', 'Authorization'],
+                }],
         });
 
         // Grant public read access to objects in the /public-images folder
