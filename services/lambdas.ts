@@ -62,5 +62,7 @@ export class LambdaService extends Construct {
             name: 'PreSignedUrlGenerator',
             bucketName: props.bucket.bucketName,
         })
+
+        props.bucket.grantReadWrite(this.preSignedUrl);
     }
 }
