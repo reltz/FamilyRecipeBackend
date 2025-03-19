@@ -1,10 +1,11 @@
 
 import { GetItemCommand, PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommandInput } from '@aws-sdk/lib-dynamodb';
-import { randomBytes, createHmac, generateKeyPairSync } from "crypto";
+import { randomBytes, createHmac, generateKeyPairSync  } from "crypto";
 import { v4 } from 'uuid';
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb";
 import { FeRecipe } from './schemas';
+import { encodeCursor } from './utils';
 
 export enum EntityType {
     Family = 'Family',
@@ -70,12 +71,12 @@ export interface ListRecipeParams {
 
 export interface ListRecipesResponse {
     recipes: FeRecipe[];
-    lastEvaluatedKey?: { [key: string]: any };
+    cursor?: string;
 }
 
 
 export class Database {
-    constructor(public readonly dynamoDB: DynamoDBDocumentClient, public readonly tableName: string) { }
+    constructor(public readonly dynamoDB: DynamoDBDocumentClient, public readonly tableName: string){}
 
     public static makePK(entity: EntityType, value: string): string {
         switch (entity) {
@@ -108,9 +109,9 @@ export class Database {
     }
 
     public async listRecipes(inputParams: ListRecipeParams): Promise<ListRecipesResponse> {
-        const { familyId, limit, lastEvaluatedKey } = inputParams;
+        const {familyId, limit, lastEvaluatedKey } = inputParams;
         const pkValue = Database.makePK(EntityType.Family, familyId);
-        const skPrefixValue = Database.makeSK(EntityType.Recipe, '');
+        const skPrefixValue = Database.makeSK(EntityType.Recipe,'');
 
 
         let params: QueryCommandInput = {
@@ -123,41 +124,41 @@ export class Database {
             Limit: limit ?? 10
         };
 
-        if (lastEvaluatedKey) {
-            params.ExclusiveStartKey = lastEvaluatedKey // For pagination, pass the LastEvaluatedKey from the previous query
+        if(lastEvaluatedKey) {
+            params.ExclusiveStartKey= lastEvaluatedKey // For pagination, pass the LastEvaluatedKey from the previous query
         }
-
+    
         try {
             const result = await this.dynamoDB.send(new QueryCommand(params)); // Use QueryCommand and client.send()
 
             console.log(`Result of query: ${JSON.stringify(result)}`);
 
-            if (!result.Items || result.Items.length === 0) return { recipes: [] };
+            if (!result.Items || result.Items.length === 0) return {recipes: []};
+    
+          const recipes: DBRecipe[] = result.Items.map((item) => unmarshall(item) as DBRecipe);
 
-            const recipes: DBRecipe[] = result.Items.map((item) => unmarshall(item) as DBRecipe);
-
-            const outPutRecipes: FeRecipe[] = recipes.map(r => {
-                return {
-                    id: r.id,
-                    name: r.name,
-                    author: r.author,
-                    familyId: r.familyId,
-                    familyName: r.faimilyName,
-                    preparation: r.preparation,
-                    createdAt: r.createdAt,
-                    ingredients: r.ingredients ?? "",
-                    photoUrl: r.imageUrl ?? ""
-                }
-            })
-
-            const response: ListRecipesResponse = {
-                recipes: outPutRecipes,
-            };
-
-            if (result.LastEvaluatedKey) {
-                response.lastEvaluatedKey = result.LastEvaluatedKey;
+          const outPutRecipes: FeRecipe[] = recipes.map(r => {
+            return {
+                id: r.id,
+                name: r.name,
+                author: r.author,
+                familyId: r.familyId,
+                familyName: r.faimilyName,
+                preparation: r.preparation,
+                createdAt: r.createdAt,
+                ingredients: r.ingredients ?? "",
+                photoUrl: r.imageUrl ?? ""
             }
-            return response;
+          })
+
+          const response: ListRecipesResponse = {
+            recipes: outPutRecipes,
+          };
+
+          if(result.LastEvaluatedKey) {
+            response.lastEvaluatedKey = result.LastEvaluatedKey;
+          }
+          return response;
         } catch (error) {
             console.error("Error querying recipes:", error);
             throw error;
@@ -169,13 +170,13 @@ export class Database {
 
         console.log(`Will save recipe to DB!`);
         // Implement the createRecipe method     
-        const { familyId, familyName, preparation, recipeName, ingredients, author, imageUrl } = params;
+        const {familyId, familyName, preparation, recipeName, ingredients, author, imageUrl} = params;
         const timestamp = new Date().toISOString();
         const recipeId = v4();
-
+       
         const recipeToInsert: DBRecipe = {
             familyId,
-            faimilyName: familyName,
+            faimilyName: familyName, 
             createdAt: timestamp,
             updatedAt: timestamp,
             entityType: EntityType.Recipe,
@@ -187,7 +188,7 @@ export class Database {
             author,
             imageUrl
         }
-        if (ingredients) {
+        if(ingredients) {
             recipeToInsert.ingredients = ingredients;
         }
         try {
@@ -208,8 +209,8 @@ export class Database {
         const salt = randomBytes(16).toString("hex");
         const hashedPassword = hashPassword(password, salt);
         const timestamp = new Date().toISOString();
-
-
+    
+    
         const dbUser: DBUser = {
             familyId,
             faimilyName: familyName, // Fixing the typo
@@ -222,7 +223,7 @@ export class Database {
             id: userId,
             name: username
         };
-
+    
         await this.dynamoDB.send(
             new PutItemCommand({
                 TableName: this.tableName, // Replace with actual table name
@@ -249,15 +250,15 @@ export class Database {
         console.log(`Creating family: ${JSON.stringify(dbFamily)}`);
         await this.dynamoDB.send(
             new PutItemCommand({
-                TableName: this.tableName,
+                TableName: this.tableName, 
                 Item: marshall(dbFamily),
             })
         );
     }
 
     public async createSecret() {
-        // Generate an EC key pair (P-256)
-        const { privateKey, publicKey } = generateKeyPairSync("ec", {
+          // Generate an EC key pair (P-256)
+          const { privateKey, publicKey } = generateKeyPairSync("ec", {
             namedCurve: "P-256", // Strong and efficient
             publicKeyEncoding: { type: "spki", format: "pem" },
             privateKeyEncoding: { type: "pkcs8", format: "pem" },
@@ -296,7 +297,7 @@ export class Database {
 
         await this.dynamoDB.send(
             new PutItemCommand({
-                TableName: this.tableName,
+                TableName: this.tableName, 
                 Item: marshall(publicKeyFields),
             })
         );
@@ -304,16 +305,16 @@ export class Database {
 
     public async getUser(username: string): Promise<DBUser> {
         const params = {
-            TableName: this.tableName,
+            TableName: this.tableName, 
             Key: marshall({
                 PK: Database.makePK(EntityType.User, username), // The PK is unique for each user based on the username
                 SK: Database.makePK(EntityType.User, username), // You can optionally use SK if you want, but it should match the same value in this case
             }),
         };
-
+       
         try {
             const result = await this.dynamoDB.send(new GetItemCommand(params));
-
+            
             if (result.Item) {
                 const user: DBUser = unmarshall(result.Item) as DBUser;
                 return user; // Return the user object
@@ -331,22 +332,22 @@ export class Database {
         try {
             const pkValue = Database.makePK(EntityType.Secret, "PEM");
             const skPrefixValue = Database.makeSK(EntityType.Secret, "PUBLIC#");
-
+        
             const params: QueryCommandInput = {
                 TableName: this.tableName,
-                KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",
+                KeyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",  
                 ExpressionAttributeValues: {
                     ":pk": { S: pkValue },
                     ":skPrefix": { S: skPrefixValue }
                 }
             };
-
+        
             const result = await this.dynamoDB.send(
                 new QueryCommand(params)
             );
-
+    
             if (!result.Items || result.Items.length === 0) return [];
-
+    
             return result.Items.map((item) => {
                 const secret = unmarshall(item) as DBSecret;
                 return { keyId: secret.id, publicKey: secret.secret };
@@ -368,9 +369,9 @@ export class Database {
                     }),
                 })
             );
-
+    
             if (!result.Item) return null;
-
+    
             const secret = unmarshall(result.Item) as DBSecret;
             return secret.secret; // Returns the private key
         } catch (error) {

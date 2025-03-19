@@ -1,7 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayEvent } from 'aws-lambda';
-import { CreateRecipeParams as CreateRecipeDBParams, Database, DBRecipe, ListRecipeParams } from './db-helper';
+import { CreateRecipeParams as CreateRecipeDBParams, Database, DBRecipe, ListRecipeParams, ListRecipesResponse } from './db-helper';
 import { decodeCursor } from './utils';
 import { REGION } from './consts';
 import { CreateRecipeRequestInput } from './schemas';
@@ -61,7 +61,7 @@ export async function handler(event: APIGatewayEvent) {
         }
       }
 
-      const listResponse = await database.listRecipes(dbRequest);
+      const listResponse: ListRecipesResponse = await database.listRecipes(dbRequest);
 
       return makeCORSResponse({ statusCode: 200, body: listResponse })
     }
