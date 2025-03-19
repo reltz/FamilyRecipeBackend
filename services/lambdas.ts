@@ -26,7 +26,7 @@ export class LambdaService extends Construct {
         })
 
         // Grant permissions
-        props.table.grantReadData(this.loginLambda);
+        props.table.grantReadWriteData(this.loginLambda);
 
         this.crudLambda = MakeLambda({
             fileName: 'crud',

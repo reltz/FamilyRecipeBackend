@@ -4,6 +4,7 @@ import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { Database } from './db-helper';
 import { REGION } from './consts';
+import { Log } from './utils';
 
 
 export interface AuthToken extends jwt.JwtPayload {
@@ -40,10 +41,10 @@ export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<AP
 
     // Return an IAM policy allowing access
 
-    console.log(`Authorizer: decoded sub :${decoded.username}, methorARN: ${event.methodArn}`)
+    Log(`Authorizer: decoded sub :${decoded.username}, methorARN: ${event.methodArn}`)
     return generatePolicy(decoded.username, 'Allow', event.methodArn, decoded);
   } catch (err) {
-    console.log('Token verification failed', err);
+    Log(`Token verification failed ${err}`, 'error');
     throw new Error('Unauthorized');
   }
 }
@@ -51,7 +52,7 @@ export async function handler(event: APIGatewayTokenAuthorizerEvent): Promise<AP
 function verifyToken(token: string, secret: string): any {
   let decoded: AuthToken = jwt.verify(token, secret) as AuthToken;
 
-  console.log('Token payload is: ', decoded);
+  Log(`Token payload is: ${decoded}`);
 
   if (typeof decoded === 'string') {
     decoded = JSON.parse(decoded);
@@ -59,11 +60,10 @@ function verifyToken(token: string, secret: string): any {
   }
 
   if (!decoded.username || !decoded.familyId || !decoded.familyName) {
-    console.log('Token payload is missing fields', decoded);
+    Log(`Token payload is missing fields ${decoded}`);
     throw new Error('Unauthorized'); // Treat it as an error if it's a string
   }
 
-  console.log('Token decoded:', decoded);
   return decoded;
 }
 

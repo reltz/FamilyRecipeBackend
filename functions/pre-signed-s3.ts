@@ -3,6 +3,7 @@ import { REGION } from './consts';
 import { S3Client } from '@aws-sdk/client-s3';
 import { generatePreSignedUrl } from './s3-helper';
 import { makeCORSResponse } from './api-helper';
+import { Log } from './utils';
 
 
 const s3 = new S3Client({ region: REGION }); // Change to your AWS region
@@ -33,7 +34,7 @@ export async function handler(event: APIGatewayEvent): Promise<APIGatewayProxyRe
    
         const familyId: string = authorizerContext.familyId; 
         const familyName: string = authorizerContext.familyName;
-        console.log(`Getting pre-signed url for family: ${familyName}`);
+        Log(`Getting pre-signed url for family: ${familyName}`);
 
         // Retrieve bucket name and expiration time (optional)
         const bucketName = process.env.BUCKET_NAME;
@@ -54,7 +55,7 @@ export async function handler(event: APIGatewayEvent): Promise<APIGatewayProxyRe
 
         return makeCORSResponse({statusCode: 200, body: {message: "Pre-signed URL generated successfully", uploadUrl: url}});
     } catch (error) {
-        console.error('Error generating pre-signed URL:', JSON.stringify(error));
+        Log(`Error generating pre-signed URL: ${JSON.stringify(error)}` , 'error');
         return makeCORSResponse({statusCode: 500});
     }
 }
