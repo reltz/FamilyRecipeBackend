@@ -84,7 +84,7 @@ function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource:
   //   // THROW ERROR IF POLICY IS FOR ANOTHER NEW ENDPOINT
   // }
 
-  const arn = `arn:aws:execute-api:${region}:${accountId}:${apiId}/${stage}/*/recipes/*`
+  const arnBase = `arn:aws:execute-api:${region}:${accountId}:${apiId}/${stage}`;
 
   const policyDocument = {
     Version: '2012-10-17',
@@ -92,7 +92,10 @@ function generatePolicy(principalId: string, effect: 'Allow' | 'Deny', resource:
       {
         Action: 'execute-api:Invoke',
         Effect: effect,
-        Resource: arn,
+        Resource: [
+          `${arnBase}/*/recipes/*`,
+          `${arnBase}/*/users/*`,
+        ],
       },
     ],
   };
