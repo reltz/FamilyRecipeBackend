@@ -35,7 +35,7 @@ export interface DBRecipe extends DBBase {
 
 export interface DBUser extends DBBase {
     familyId: string;
-    faimilyName: string;
+    familyName: string;
     password: string;
 }
 
@@ -274,7 +274,7 @@ export class Database {
 
         const dbUser: DBUser = {
             familyId,
-            faimilyName: familyName, // Fixing the typo
+            familyName,
             password: `${salt}$${hashedPassword}`, // Storing salt with the hash
             createdAt: timestamp,
             updatedAt: timestamp,
@@ -291,6 +291,27 @@ export class Database {
                 Item: marshall(dbUser),
             })
         );
+    }
+
+    public async updateUserPassword(username: string, newPassword: string) {
+        const user = await this.getUser(username);
+
+        const newSalt = randomBytes(16).toString("hex");
+        const newHash = hashPassword(newPassword, newSalt);
+
+        const timestamp = new Date().toISOString();
+
+        const updatedUser: DBUser = {
+            ...user,
+            password: `${newSalt}$${newHash}`,
+            updatedAt: timestamp
+        };
+
+        await this.dynamoDB.send(
+            new PutItemCommand({
+                TableName: this.tableName,
+                Item: marshall(updatedUser),
+            }));
     }
 
     public async createFamily(familyName: string) {
