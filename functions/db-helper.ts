@@ -35,7 +35,7 @@ export interface DBRecipe extends DBBase {
 
 export interface DBUser extends DBBase {
     familyId: string;
-    faimilyName: string;
+    familyName: string;
     password: string;
 }
 
@@ -212,7 +212,7 @@ export class Database {
 
         const dbUser: DBUser = {
             familyId,
-            faimilyName: familyName, // Fixing the typo
+            familyName,
             password: `${salt}$${hashedPassword}`, // Storing salt with the hash
             createdAt: timestamp,
             updatedAt: timestamp,
