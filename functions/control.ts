@@ -5,22 +5,25 @@ import { REGION } from "./consts";
 import { Log } from "./utils";
 
 interface ControlBaseEvent {
-    operation: "secret" | "user" | "family";
-
+  operation: "secret" | "user" | "family";
+  action: "create" | "update-password" | "rotate";
 }
 interface CreateUserEvent extends CreateFamilyEvent {
-    username: string;
-    password: string;
-    familyId: string;
+  username: string;
+  password: string;
+  familyId: string;
+}
+
+interface UpdateUserPasswordEvent extends ControlBaseEvent {
+  username: string;
+  newPassword: string;
 }
 
 interface CreateFamilyEvent extends ControlBaseEvent {
-    familyName: string;
+  familyName: string;
 }
 
-interface CreateSecretEvent extends ControlBaseEvent {
-    action: "create" | "rotate"
-}
+interface CreateSecretEvent extends ControlBaseEvent {}
 
 // TEMP
 // const secretEvent: CreateSecretEvent = {
@@ -33,65 +36,92 @@ interface CreateSecretEvent extends ControlBaseEvent {
 //     "operation": "family"
 // }
 
-// const userCreate: CreateUserEvent = {
-//     "familyId": "eadb731a-bd9e-4c28-a53c-fd4aa455818d",
-//     "familyName": "Mock",
-//     "operation": "user",
-//     "password": "mock",
-//     "username": "mock"
-// }
+const userCreate: CreateUserEvent = {
+    familyId: "eadb731a-bd9e-4c28-a53c-fd4aa455818d",
+    familyName: "Mock",
+    operation: "user",
+    password: "mock",
+    username: "mock",
+    action: "create"
+};
+
+const updateUserPasswordEvent: UpdateUserPasswordEvent = {
+  newPassword: "potato",
+  operation: "user",
+  username: "mock",
+  action: "update-password",
+};
 
 // END TEMP
 
 const client = new DynamoDBClient({ region: REGION });
 const dynamoDb = DynamoDBDocumentClient.from(client);
 
-export async function handler(event: CreateUserEvent | CreateFamilyEvent | CreateSecretEvent) {
+export async function handler(
+  event: CreateUserEvent | CreateFamilyEvent | CreateSecretEvent
+) {
+  const tableName = process.env.TABLE_NAME;
+  if (!tableName) {
+    throw new Error("Table name not set");
+  }
 
-    const tableName = process.env.TABLE_NAME;
-    if (!tableName) {
-      throw new Error('Table name not set');
-    }
-
-    const database = new Database(dynamoDb, tableName);
-    try {
-        switch(event.operation) {
-            case 'family':
-                Log(`Creating family`);
-                await createFamily(database, event as CreateFamilyEvent );
-                break;
-            case 'user': 
-                Log(`Creating user`);
-                await createUser(database, event as CreateUserEvent);
-                break;
-            case 'secret':
-                Log(`Creating secret`);
-                await createRotateSecret(database, event as CreateSecretEvent);
-                break;
+  const database = new Database(dynamoDb, tableName);
+  try {
+    switch (event.operation) {
+      case "family":
+        Log(`Creating family`);
+        await createFamily(database, event as CreateFamilyEvent);
+        break;
+      case "user":
+        if (event.action === "create"){
+            Log(`Creating user`);
+            await createUser(database, event as CreateUserEvent);
+            break;
+        } else if (event.action === "update-password") {
+            Log(`Updating user password`);
+            await updateUserPasswordAdmin(database, event as UpdateUserPasswordEvent);
+            break;
         }
-
-     
-        return { statusCode: 201, body: JSON.stringify({ message: "Created" }) };
-    } catch (error) {
-        Log(`Error creating user/family: ${error}`, 'error');
-        return { statusCode: 500, body: "Internal server error" };
+      case "secret":
+        Log(`Creating secret`);
+        await createRotateSecret(database, event as CreateSecretEvent);
+        break;
     }
-};
 
-async function createUser(database: Database, event :CreateUserEvent ) {
-    await database.createUser(event.username, event.password, event.familyId, event.familyName);
+    return { statusCode: 201, body: JSON.stringify({ message: "Created" }) };
+  } catch (error) {
+    Log(`Error creating user/family: ${error}`, "error");
+    return { statusCode: 500, body: "Internal server error" };
+  }
+}
+
+async function createUser(database: Database, event: CreateUserEvent) {
+  await database.createUser(
+    event.username,
+    event.password,
+    event.familyId,
+    event.familyName
+  );
+}
+
+async function updateUserPasswordAdmin(
+  database: Database,
+  event: UpdateUserPasswordEvent
+) {
+  await database.updateUserPassword(event.username, event.newPassword);
 }
 
 async function createFamily(database: Database, event: CreateFamilyEvent) {
-    await database.createFamily(event.familyName)
+  await database.createFamily(event.familyName);
 }
 
-async function createRotateSecret(database: Database, event: CreateSecretEvent ) {
-  if(event.action == "create") {
+async function createRotateSecret(
+  database: Database,
+  event: CreateSecretEvent
+) {
+  if (event.action == "create") {
     await database.createSecret();
-  }
-  else {
-    throw new Error("Rotation not implemented")
+  } else {
+    throw new Error("Rotation not implemented");
   }
 }
-

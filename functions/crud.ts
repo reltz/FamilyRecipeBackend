@@ -94,6 +94,21 @@ export async function handler(event: APIGatewayEvent) {
       });
     }
 
+    if(path.includes('/users/change-password') && method === 'POST') {
+      if (!event.body) {
+        return makeCORSResponse({ statusCode: 400, body: { error: "Missing body" } });
+      }
+
+      const body = JSON.parse(event.body);
+      if (!body.newPassword) {
+        return makeCORSResponse({ statusCode: 400, body: { error: "Missing new password" } });
+      }
+
+      await database.updateUserPassword(userName, body.newPassword);
+
+      return makeCORSResponse({ statusCode: 200 });
+    }
+
     return makeCORSResponse({statusCode: 404, body: {error: "Route not found"}});
   } catch (er) {
     console.error("Error:", er);

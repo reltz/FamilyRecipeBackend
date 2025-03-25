@@ -167,7 +167,6 @@ export class Database {
 
 
     public async createRecipe(params: CreateRecipeParams): Promise<void> {
-
         Log(`Will save recipe to DB!`);
         // Implement the createRecipe method     
         const { familyId, familyName, preparation, recipeName, ingredients, author, imageUrl } = params;
@@ -230,6 +229,27 @@ export class Database {
                 Item: marshall(dbUser),
             })
         );
+    }
+
+    public async updateUserPassword(username: string, newPassword: string) {
+        const user = await this.getUser(username);
+
+        const newSalt = randomBytes(16).toString("hex");
+        const newHash = hashPassword(newPassword, newSalt);
+
+        const timestamp = new Date().toISOString();
+
+        const updatedUser: DBUser = {
+            ...user,
+            password: `${newSalt}$${newHash}`,
+            updatedAt: timestamp
+        };
+
+        await this.dynamoDB.send(
+            new PutItemCommand({
+                TableName: this.tableName,
+                Item: marshall(updatedUser),
+            }));
     }
 
     public async createFamily(familyName: string) {

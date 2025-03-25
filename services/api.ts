@@ -63,6 +63,40 @@ export class APIService extends Construct {
             },
         });
 
+        const usersResource = this.api.root.addResource('users', {
+            defaultCorsPreflightOptions: {
+                allowOrigins: Cors.ALL_ORIGINS, // Change to your frontend domain if needed
+                allowMethods: Cors.ALL_METHODS,
+                allowHeaders: ['Content-Type', 'Authorization'],
+            },
+        });
+
+        const changePassResouce = usersResource.addResource('change-password');
+        changePassResouce.addMethod('POST', crudIntegration, {
+            authorizer: jwtAuthorizer,
+            methodResponses: [{
+                statusCode: '200',
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }, {
+                statusCode: '400', // Bad Request
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }, {
+                statusCode: '500', // Internal Server Error
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }],
+        });
 
         // PRE-SIGNED PHOTO URL
         const preSignedIntegration = new apiGateway.LambdaIntegration(props.s3PreSignedLambda);
