@@ -1,8 +1,8 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { APIGatewayEvent } from 'aws-lambda';
-import { CreateRecipeParams as CreateRecipeDBParams, Database, DBRecipe, ListRecipeParams } from './db-helper';
-import { decodeCursor } from './utils';
+import { CreateRecipeParams as CreateRecipeDBParams, Database, DBRecipe, ListRecipeParams, ListRecipesResponse } from './db-helper';
+import { decodeCursor, Log } from './utils';
 import { REGION } from './consts';
 import { CreateRecipeRequestInput } from './schemas';
 import { makeCORSResponse } from './api-helper';
@@ -22,10 +22,10 @@ export async function handler(event: APIGatewayEvent) {
     }
     const database = new Database(dynamoDb, tableName);
 
-    console.log('Received event');
+    Log('Received event');
 
     const authorizerContext = event.requestContext.authorizer;
-    console.log(`Authorizer context: ${JSON.stringify(authorizerContext)}`);
+    Log(`Authorizer context: ${JSON.stringify(authorizerContext)}`);
 
     if (!authorizerContext || !authorizerContext.username || !authorizerContext.familyId) {
       throw new Error("Token missing info!");
@@ -61,7 +61,7 @@ export async function handler(event: APIGatewayEvent) {
         }
       }
 
-      const listResponse = await database.listRecipes(dbRequest);
+      const listResponse: ListRecipesResponse = await database.listRecipes(dbRequest);
 
       return makeCORSResponse({ statusCode: 200, body: listResponse })
     }
@@ -86,7 +86,6 @@ export async function handler(event: APIGatewayEvent) {
         author: userName,
         imageUrl: recipe.photoUrl
       }
-
 
       await database.createRecipe(recipeInput);
 
