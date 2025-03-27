@@ -137,6 +137,33 @@ export class APIService extends Construct {
             }],
         });
 
+        const likeRecipeResource = recipesResource.addResource('like-recipe');
+        likeRecipeResource.addMethod('GET', crudIntegration, {
+            authorizer: jwtAuthorizer,
+            methodResponses: [{
+                statusCode: '200',
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }, {
+                statusCode: '400', // Bad Request
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }, {
+                statusCode: '500', // Internal Server Error
+                responseParameters: {
+                    'method.response.header.Access-Control-Allow-Origin': true,
+                    'method.response.header.Access-Control-Allow-Methods': true,
+                    'method.response.header.Access-Control-Allow-Headers': true,
+                },
+            }],
+        });
+
         // Create Recipe endpoint
         const createRecipeResource = recipesResource.addResource('create');
         createRecipeResource.addMethod('POST', crudIntegration, {

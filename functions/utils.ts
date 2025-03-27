@@ -18,9 +18,10 @@ export function decodeCursor(cursor: string): Record<string, any> | null {
 }
 
 
-export function Log(message: string, level: 'log' | 'info' | 'error' = "log"): void {
+export function Log(message: string, level?: 'log' | 'info' | 'error'): void {
+    const logLevet = level ?? "log";
     if(ENABLE_LOGS) {
-        switch(level){
+        switch(logLevet){
             case 'log':
                 console.log(message);
             case 'info': 
