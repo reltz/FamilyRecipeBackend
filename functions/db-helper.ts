@@ -1,4 +1,3 @@
-
 import { GetItemCommand, PutItemCommand, QueryCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommandInput, QueryCommandInput, UpdateCommand, UpdateCommandInput } from '@aws-sdk/lib-dynamodb';
 import { randomBytes, createHmac, generateKeyPairSync } from "crypto";
@@ -31,6 +30,7 @@ export interface DBRecipe extends DBBase {
     author: string;
     ingredients?: string;
     imageUrl?: string;
+    likes: Record<string, boolean>;
 }
 
 export interface DBUser extends DBBase {
@@ -49,6 +49,13 @@ export interface CreateRecipeParams {
     author: string;
     ingredients?: string;
     imageUrl?: string;
+}
+
+export interface UpdateRecipeLikesParams {
+    familyId: string;
+    recipeId: string;
+    userName: string;
+    action: "like" | "unlike";
 }
 
 export interface DBSecret {
@@ -135,7 +142,7 @@ export class Database {
 
             if (!result.Items || result.Items.length === 0) return { recipes: [] };
 
-            const recipes: DBRecipe[] = result.Items.map((item) => unmarshall(item) as DBRecipe);
+            const recipes: DBRecipe[] = result.Items.map((item: any) => unmarshall(item) as DBRecipe);
 
             const outPutRecipes: FeRecipe[] = recipes.map(r => {
                 return {
@@ -147,7 +154,8 @@ export class Database {
                     preparation: r.preparation,
                     createdAt: r.createdAt,
                     ingredients: r.ingredients ?? "",
-                    photoUrl: r.imageUrl ?? ""
+                    photoUrl: r.imageUrl ?? "",
+                    likes: r.likes ?? {}
                 }
             })
 
@@ -167,7 +175,6 @@ export class Database {
 
 
     public async createRecipe(params: CreateRecipeParams): Promise<void> {
-
         Log(`Will save recipe to DB!`);
         // Implement the createRecipe method     
         const { familyId, familyName, preparation, recipeName, ingredients, author, imageUrl } = params;
@@ -186,7 +193,8 @@ export class Database {
             name: recipeName,
             preparation,
             author,
-            imageUrl
+            imageUrl,
+            likes: {}
         }
         if (ingredients) {
             recipeToInsert.ingredients = ingredients;
@@ -201,7 +209,60 @@ export class Database {
         } catch (er) {
             console.error(`Error: ${JSON.stringify(er)}`);
         }
+    }
 
+    public async updateLikesRecipe(params: UpdateRecipeLikesParams): Promise<boolean> {
+        const { familyId, recipeId, userName, action } = params;
+
+        let updateParams: UpdateCommandInput | null = null;
+
+        Log(`update like params: ${JSON.stringify(params)}`);
+        if (action === "like") {
+            updateParams = {
+                Key: {
+                    PK: Database.makePK(EntityType.Recipe, familyId),
+                    SK: Database.makeSK(EntityType.Recipe, recipeId),
+                },
+                TableName: this.tableName,
+                UpdateExpression: "SET #likes.#userName = :userLike", // Add the like for the user
+                ExpressionAttributeNames: {
+                    "#likes": "likes",
+                    "#userName": userName,
+                },
+                ExpressionAttributeValues: {
+                    ":userLike": true,
+                },
+                ConditionExpression: "attribute_not_exists(#likes.#userName)", // Ensure the user hasn't already liked
+            };
+        } else if (action === "unlike") {
+            updateParams = {
+                Key: {
+                    PK: Database.makePK(EntityType.Recipe, familyId),
+                    SK: Database.makeSK(EntityType.Recipe, recipeId),
+                },
+                TableName: this.tableName,
+                UpdateExpression: "REMOVE #likes.#userName", // Remove the like for the user
+                ExpressionAttributeNames: {
+                    "#likes": "likes",
+                    "#userName": userName,
+                },
+                ConditionExpression: "attribute_exists(#likes.#userName)", // Ensure the user has liked before removing
+            };
+        }
+
+        if (updateParams) {
+            try {
+                Log(`updatecommand: ${JSON.stringify(updateParams)}`);
+                await this.dynamoDB.send(new UpdateCommand(updateParams));
+                return true;
+            } catch (er) {
+                Log(`Failed to update recipe likes for user: ${userName} with error: ${er}`, "error");
+                return false;
+            }
+        }
+
+        Log(`Invalid action: ${action}`, "error");
+        return false;
     }
 
     public async createUser(username: string, password: string, familyId: string, familyName: string) {

@@ -8,6 +8,7 @@ export interface FeRecipe {
     createdAt: string;
     ingredients?: string;
     photoUrl?: string;
+    likes?: Record<string, boolean>;
 }
 
 export interface CreateRecipeRequestInput {

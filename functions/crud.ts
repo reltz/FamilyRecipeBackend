@@ -66,6 +66,29 @@ export async function handler(event: APIGatewayEvent) {
       return makeCORSResponse({ statusCode: 200, body: listResponse })
     }
 
+    if(path.includes('/recipes/like-recipe') && method === 'GET') {
+      Log(`query params: ${JSON.stringify(event.queryStringParameters)}`, "info");
+      const action = event.queryStringParameters ? event.queryStringParameters.action : null;
+
+      if(!action || (action !== 'like' && action !== 'unlike')) {
+        return makeCORSResponse({ statusCode: 400, body: { error: "Missing action" } });
+      }
+
+      const recipeID = event.queryStringParameters ? event.queryStringParameters.recipeId : null;
+      if(!recipeID) {
+        return makeCORSResponse({ statusCode: 400, body: { error: "Missing recipeId" } });
+      }
+
+      const succeeded = await database.updateLikesRecipe({
+        familyId,
+        recipeId: recipeID,
+        action,
+        userName
+      });
+
+      return makeCORSResponse({ statusCode: succeeded ? 200 : 500 });
+    }
+
     if (path.includes('/recipes/create') && method === 'POST') {
       const bucketName = process.env.BUCKET_NAME;
       if (!bucketName) {
